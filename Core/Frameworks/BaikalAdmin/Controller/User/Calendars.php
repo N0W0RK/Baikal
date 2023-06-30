@@ -42,6 +42,8 @@ class Calendars extends \Flake\Core\Controller {
 
         if ($this->actionNewRequested()) {
             $this->actionNew();
+        } elseif ($this->actionImportRequested()) {
+            $this->actionImport();
         } elseif ($this->actionEditRequested()) {
             $this->actionEdit();
         } elseif ($this->actionDeleteRequested()) {
@@ -78,7 +80,7 @@ class Calendars extends \Flake\Core\Controller {
         $sMessages = implode("\n", $this->aMessages);
         $oView->setData("messages", $sMessages);
 
-        if ($this->actionNewRequested() || $this->actionEditRequested()) {
+        if ($this->actionNewRequested() || $this->actionImportRequested() || $this->actionEditRequested()) {
             $sForm = $this->oForm->render();
         } else {
             $sForm = "";
@@ -90,13 +92,14 @@ class Calendars extends \Flake\Core\Controller {
         $oView->setData("modellabel", $this->oUser->label());
         $oView->setData("linkback", \BaikalAdmin\Controller\Users::link());
         $oView->setData("linknew", $this->linkNew());
+        $oView->setData("linkimport", $this->linkImport());
         $oView->setData("calendaricon", \Baikal\Model\Calendar::icon());
 
         return $oView->render();
     }
 
     protected function initForm() {
-        if ($this->actionEditRequested() || $this->actionNewRequested()) {
+        if ($this->actionNewRequested() || $this->actionImportRequested() || $this->actionEditRequested()) {
             $aOptions = [
                 "closeurl" => $this->linkHome(),
             ];
@@ -133,6 +136,55 @@ class Calendars extends \Flake\Core\Controller {
     }
 
     protected function actionNew() {
+        # Building floating model object
+        $this->oModel = new \Baikal\Model\Calendar();
+        $this->oModel->set(
+            "principaluri",
+            $this->oUser->get("uri")
+        );
+
+        $this->oModel->set(
+            "components",
+            "VEVENT"
+        );
+
+        # Initialize corresponding form
+        $this->initForm();
+
+        # Process form
+        if ($this->oForm->submitted()) {
+            $this->oForm->execute();
+
+            if ($this->oForm->persisted()) {
+                $this->oForm->setOption(
+                    "action",
+                    $this->linkEdit(
+                        $this->oForm->modelInstance()
+                    )
+                );
+            }
+        }
+    }
+
+    # Action import
+
+    function linkImport() {
+        return self::buildRoute([
+            "user" => $this->currentUserId(),
+            "import"  => 1,
+        ]) . "#form";
+    }
+
+    protected function actionImportRequested() {
+        $aParams = $this->getParams();
+        if (array_key_exists("import", $aParams) && intval($aParams["import"]) === 1) {
+            return true;
+        }
+
+        return false;
+    }
+
+    protected function actionImport() {
         # Building floating model object
         $this->oModel = new \Baikal\Model\Calendar();
         $this->oModel->set(

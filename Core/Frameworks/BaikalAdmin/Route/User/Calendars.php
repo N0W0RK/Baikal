@@ -41,6 +41,9 @@ class Calendars extends \Flake\Core\Route {
             "new" => [
                 "required" => false,
             ],
+            "import" => [
+                "required" => false,
+            ],
             "edit" => [
                 "required" => false,
             ],
